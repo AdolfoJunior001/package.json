@@ -1,0 +1,150 @@
+// app.tsx
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export default function App() {
+  const [formData, setFormData] = useState({
+    data: "",
+    caminhao: "",
+    carga: "",
+    tipo: "batido",
+    cliente: "",
+    fornos: {
+      forno1: false,
+      forno2: false,
+      fornox: false,
+      estoque: false,
+    },
+  });
+
+  const [registros, setRegistros] = useState<any[]>([]);
+
+  const handleSubmit = async () => {
+    const dadosParaPlanilha = {
+      data: formData.data,
+      caminhao: formData.caminhao,
+      carga: formData.carga,
+      tipo: formData.tipo,
+      cliente: formData.cliente,
+      fornos: Object.keys(formData.fornos).filter((f) => formData.fornos[f]),
+    };
+
+    try {
+      await fetch("https://script.google.com/macros/s/AKfycbx1aqES2ohPS4R6kT6tsgCSqv7vP4yLp4dSR6N5wSz8mgPWtOiZw1zdR9JUgoVD2TjQSA/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(dadosParaPlanilha),
+      });
+
+      setRegistros([...registros, formData]);
+
+      setFormData({
+        data: "",
+        caminhao: "",
+        carga: "",
+        tipo: "batido",
+        cliente: "",
+        fornos: {
+          forno1: false,
+          forno2: false,
+          fornox: false,
+          estoque: false,
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao enviar para a planilha:", error);
+      alert("Erro ao salvar os dados. Verifique a conexão ou o script.");
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <h1 className="text-2xl font-bold">Saída de Cargas</h1>
+
+      <Input
+        type="date"
+        value={formData.data}
+        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+      />
+
+      <Input
+        placeholder="Caminhão (ex: Volvo/ABC-1234)"
+        value={formData.caminhao}
+        onChange={(e) => setFormData({ ...formData, caminhao: e.target.value })}
+      />
+
+      <Input
+        type="number"
+        placeholder="Quantidade de tijolos"
+        value={formData.carga}
+        onChange={(e) => setFormData({ ...formData, carga: e.target.value })}
+      />
+
+      <Select
+        value={formData.tipo}
+        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder="Tipo da carga" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="batido">Batido</SelectItem>
+          <SelectItem value="paletizado">Paletizado</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Input
+        placeholder="Cliente"
+        value={formData.cliente}
+        onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
+      />
+
+      <div>
+        <p className="font-semibold mb-1">Forno (pode marcar mais de um):</p>
+        {Object.keys(formData.fornos).map((forno) => (
+          <div key={forno} className="flex items-center space-x-2">
+            <Checkbox
+              checked={formData.fornos[forno]}
+              onCheckedChange={(checked) =>
+                setFormData({
+                  ...formData,
+                  fornos: { ...formData.fornos, [forno]: checked },
+                })
+              }
+            />
+            <label>{forno.toUpperCase()}</label>
+          </div>
+        ))}
+      </div>
+
+      <Button onClick={handleSubmit}>Salvar Carga</Button>
+
+      <div className="mt-8">
+        <h2 className="text-xl font-bold">Registros</h2>
+        <ul className="space-y-2 mt-2">
+          {registros.map((registro, index) => (
+            <li key={index} className="border p-2 rounded bg-gray-100">
+              <p><strong>Data:</strong> {registro.data}</p>
+              <p><strong>Caminhão:</strong> {registro.caminhao}</p>
+              <p><strong>Carga:</strong> {registro.carga}</p>
+              <p><strong>Tipo:</strong> {registro.tipo}</p>
+              <p><strong>Cliente:</strong> {registro.cliente}</p>
+              <p><strong>Forno(s):</strong> {Object.keys(registro.fornos).filter((f) => registro.fornos[f]).join(", ")}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
